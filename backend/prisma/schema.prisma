@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  googleId     String        @unique @map("google_id")
+  email        String        @unique
+  name         String
+  pictureUrl   String?       @map("picture_url")
+  role         String        @default("visitor")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  appointments Appointment[]
+  chatMessages ChatMessage[]
+
+  @@map("users")
+}
+
+model Appointment {
+  id              Int      @id @default(autoincrement())
+  googleEventId   String   @unique @map("google_event_id")
+  visitorId       Int      @map("visitor_id")
+  visitorEmail    String   @map("visitor_email")
+  visitorName     String   @map("visitor_name")
+  appointmentDate DateTime @db.Date @map("appointment_date")
+  startTime       DateTime @db.Time @map("start_time")
+  endTime         DateTime @db.Time @map("end_time")
+  reason          String
+  status          String   @default("scheduled")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  visitor User @relation(fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@map("appointments")
+}
+
+model ChatMessage {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  sender    String   // "user" or "assistant"
+  message   String
+  timestamp DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
+}
