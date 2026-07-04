@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const authRouter = require('./routes/auth');
+const chatRouter = require('./routes/chat');
 
 const app = express();
 
@@ -11,6 +12,7 @@ app.use(express.json());
 
 // Routes
 app.use('/api/auth', authRouter);
+app.use('/api/chat', chatRouter);
 
 // Health check endpoint
 app.get('/', (req, res) => {

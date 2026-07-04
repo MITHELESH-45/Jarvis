@@ -6,13 +6,20 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node src/index.js",
+    "dev:mcp": "node src/mcp-server/server.js",
+    "dev:all": "concurrently --names \"APP,MCP\" --prefix-colors \"cyan,magenta\" \"npm run dev\" \"npm run dev:mcp\"",
     "get-token": "node scripts/get-refresh-token.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@langchain/core": "^1.2.1",
+    "@langchain/google-genai": "^2.2.0",
+    "@langchain/openai": "^1.5.3",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@prisma/client": "^6.19.3",
+    "concurrently": "^10.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -22,5 +29,8 @@
   },
   "devDependencies": {
     "prisma": "^6.19.3"
+  },
+  "optionalDependencies": {
+    "zod": "3.25.76"
   }
 }
