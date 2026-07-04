@@ -7,24 +7,33 @@ const chatRouter = require('./routes/chat');
 const app = express();
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-// Allow the configured frontend origin (or all origins in development)
+// Normalise a URL string: strip surrounding quotes and trailing slashes
+function normaliseUrl(url) {
+  return url.replace(/['"]/g, '').replace(/\/+$/, '');
+}
+
+// Build allowlist from FRONTEND_URL (supports comma-separated list)
 const allowedOrigins = process.env.FRONTEND_URL
-  ? [process.env.FRONTEND_URL.replace(/['"]/g, '').replace(/\/$/, '')]
+  ? process.env.FRONTEND_URL.split(',').map(normaliseUrl).filter(Boolean)
   : ['http://localhost:5173', 'http://localhost:3000'];
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (Postman, curl, server-to-server)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error(`CORS: origin "${origin}" not allowed`));
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow requests with no origin (Postman, server-to-server, curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some((o) => origin === o)) return callback(null, true);
+    console.warn(`[CORS] Blocked origin: ${origin} | Allowed: ${allowedOrigins.join(', ')}`);
+    return callback(new Error(`CORS: origin "${origin}" not allowed`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200, // Some legacy browsers choke on 204
+};
+
+// Apply CORS to every route, including preflight OPTIONS
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Explicitly handle all OPTIONS preflight
 
 app.use(express.json());
 
@@ -38,6 +47,7 @@ app.get('/', (req, res) => {
     status: 'ok',
     message: 'AI Personal Assistant / Digital Twin Backend is running.',
     timestamp: new Date(),
+    allowedOrigins,
   });
 });
 

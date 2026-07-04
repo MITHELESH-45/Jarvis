@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (credential: string) => {
     try {
-      const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/['"]/g, '');
+      const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/['"]/g, '').replace(/\/+$/, '');
       const response = await fetch(`${backendUrl}/api/auth/google`, {
         method: 'POST',
         headers: {

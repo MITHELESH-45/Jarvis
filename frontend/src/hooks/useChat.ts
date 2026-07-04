@@ -27,7 +27,7 @@ export function useChat() {
 
     const loadHistory = async () => {
       try {
-        const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/['"]/g, '');
+        const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/['"]/g, '').replace(/\/+$/, '');
         const res = await fetch(`${backendUrl}/api/chat/history`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -71,7 +71,7 @@ export function useChat() {
       setIsLoading(true);
 
       try {
-        const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/['"]/g, '');
+        const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/['"]/g, '').replace(/\/+$/, '');
         const response = await fetch(`${backendUrl}/api/chat`, {
           method: 'POST',
           headers: {
