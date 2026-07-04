@@ -2,16 +2,21 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "AI Personal Assistant / Digital Twin Backend Database Layer",
-  "main": "src/db.js",
+  "main": "src/index.js",
   "scripts": {
-    "build": "tsc"
+    "start": "node src/index.js",
+    "dev": "node src/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.19.3",
-    "dotenv": "^17.4.2"
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "google-auth-library": "^10.9.0",
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "prisma": "^6.19.3"
