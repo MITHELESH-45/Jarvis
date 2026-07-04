@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-slateGray: #708090;
+  --color-electricBlue: #00F0FF;
+}
+
+body {
+  @apply bg-white text-slate-900 antialiased transition-colors duration-300;
+}
+
+.dark body {
+  @apply bg-slate-900 text-white;
+}

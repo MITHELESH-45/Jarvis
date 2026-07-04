@@ -31,9 +31,9 @@ model Appointment {
   visitorId       Int      @map("visitor_id")
   visitorEmail    String   @map("visitor_email")
   visitorName     String   @map("visitor_name")
-  appointmentDate DateTime @db.Date @map("appointment_date")
-  startTime       DateTime @db.Time @map("start_time")
-  endTime         DateTime @db.Time @map("end_time")
+  appointmentDate DateTime @db.Timestamptz @map("appointment_date")
+  startTime       DateTime @db.Timestamptz @map("start_time")
+  endTime         DateTime @db.Timestamptz @map("end_time")
   reason          String
   status          String   @default("scheduled")
   createdAt       DateTime @default(now()) @map("created_at")

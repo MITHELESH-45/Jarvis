@@ -1,6 +1,6 @@
 const { DynamicStructuredTool } = require('@langchain/core/tools');
 const { z } = require('zod');
-const { checkAvailability, createAppointment, blockTimeSlot, deleteAppointment } = require('../services/calendarService');
+const { checkConflict, createAppointment, blockTimeSlot, deleteAppointment, toISTISOString } = require('../services/calendarService');
 const { sendEmail } = require('../services/gmailService');
 const { prisma } = require('../db');
 
@@ -42,7 +42,13 @@ const bookAppointmentTool = new DynamicStructuredTool({
   }),
   func: async ({ visitorName, visitorEmail, date, startTime, endTime, reason }) => {
     try {
-      // Step 1: Create Google Calendar event
+      // Step 0: Conflict check — block if slot overlaps an existing event
+      const { hasConflict, conflictingEvent } = await checkConflict(date, startTime, endTime);
+      if (hasConflict) {
+        return `Cannot book: the requested slot (${startTime}–${endTime} IST on ${date}) conflicts with an existing event: "${conflictingEvent}". Please choose a different time.`;
+      }
+
+      // Step 1: Create Google Calendar event (times are treated as IST internally)
       const googleEventId = await createAppointment({ visitorName, visitorEmail, date, startTime, endTime, reason });
 
       // Step 2: Find the visitor's user record in the database
@@ -52,16 +58,16 @@ const bookAppointmentTool = new DynamicStructuredTool({
         return `Appointment created in Google Calendar (Event ID: ${googleEventId}), but could not save to the database: no user found with email ${visitorEmail}. The visitor must sign in first.`;
       }
 
-      // Step 3: Save to Prisma appointments table
+      // Step 3: Save to Prisma appointments table — use IST-aware UTC timestamps
       await prisma.appointment.create({
         data: {
           googleEventId,
           visitorId: visitorUser.id,
           visitorEmail,
           visitorName,
-          appointmentDate: new Date(`${date}T00:00:00Z`),
-          startTime: new Date(`${date}T${startTime.includes('T') ? startTime.split('T')[1] : startTime}`),
-          endTime: new Date(`${date}T${endTime.includes('T') ? endTime.split('T')[1] : endTime}`),
+          appointmentDate: new Date(`${date}T00:00:00+05:30`),
+          startTime: new Date(toISTISOString(startTime, date)),
+          endTime:   new Date(toISTISOString(endTime, date)),
           reason,
           status: 'scheduled',
         },
@@ -70,19 +76,19 @@ const bookAppointmentTool = new DynamicStructuredTool({
       // Step 4: Send confirmation email to the visitor
       await sendEmail({
         to: visitorEmail,
-        subject: `Your Meeting with Mithul is Confirmed — ${date}`,
+        subject: `Your Meeting with Mithelesh is Confirmed — ${date}`,
         body: `
           <h2>Meeting Confirmed!</h2>
           <p>Hi ${visitorName},</p>
           <p>Your meeting has been successfully booked. Here are the details:</p>
           <ul>
             <li><strong>Date:</strong> ${date}</li>
-            <li><strong>Time:</strong> ${startTime} – ${endTime} (UTC)</li>
+            <li><strong>Time:</strong> ${startTime} – ${endTime} (IST)</li>
             <li><strong>Reason:</strong> ${reason}</li>
           </ul>
           <p>If you have any questions, feel free to reach out at <a href="mailto:${process.env.ADMIN_EMAIL}">${process.env.ADMIN_EMAIL}</a>.</p>
           <p>Looking forward to meeting you!</p>
-          <p><strong>Mithul</strong></p>
+          <p><strong>Mithelesh</strong></p>
         `,
       });
 
@@ -95,7 +101,7 @@ const bookAppointmentTool = new DynamicStructuredTool({
           <ul>
             <li><strong>Visitor:</strong> ${visitorName} (${visitorEmail})</li>
             <li><strong>Date:</strong> ${date}</li>
-            <li><strong>Time:</strong> ${startTime} – ${endTime} (UTC)</li>
+            <li><strong>Time:</strong> ${startTime} – ${endTime} (IST)</li>
             <li><strong>Reason:</strong> ${reason}</li>
             <li><strong>Google Event ID:</strong> ${googleEventId}</li>
           </ul>
@@ -152,7 +158,7 @@ const cancelAppointmentTool = new DynamicStructuredTool({
       // Step 3: Send cancellation email to the visitor
       await sendEmail({
         to: appointment.visitorEmail,
-        subject: `Your Meeting with Mithul Has Been Cancelled`,
+        subject: `Your Meeting with Mithelesh Has Been Cancelled`,
         body: `
           <h2>Meeting Cancelled</h2>
           <p>Hi ${appointment.visitorName},</p>
@@ -163,7 +169,7 @@ const cancelAppointmentTool = new DynamicStructuredTool({
           </ul>
           <p>Please reach out to <a href="mailto:${process.env.ADMIN_EMAIL}">${process.env.ADMIN_EMAIL}</a> to reschedule at a convenient time.</p>
           <p>Apologies for the inconvenience.</p>
-          <p><strong>Mithul's AI Assistant</strong></p>
+          <p><strong>Mithelesh's AI Assistant</strong></p>
         `,
       });
 
@@ -175,9 +181,83 @@ const cancelAppointmentTool = new DynamicStructuredTool({
   },
 });
 
+// ─── Tool: cancel_appointments_by_date (Admin-Only) ──────────────────────────
+const cancelAppointmentsByDateTool = new DynamicStructuredTool({
+  name: 'cancel_appointments_by_date',
+  description: 'Cancels ALL scheduled appointments for a given date (YYYY-MM-DD). Deletes each Google Calendar event, marks each appointment as cancelled in the database, and sends a cancellation email to every affected visitor. For admin use only.',
+  schema: z.object({
+    date: z.string().describe('The date to cancel all appointments for, in YYYY-MM-DD format.'),
+  }),
+  func: async ({ date }) => {
+    try {
+      // Step 1: Find all scheduled appointments on that date
+      const startOfDay = new Date(`${date}T00:00:00Z`);
+      const endOfDay   = new Date(`${date}T23:59:59Z`);
+
+      const appointments = await prisma.appointment.findMany({
+        where: {
+          appointmentDate: { gte: startOfDay, lte: endOfDay },
+          status: 'scheduled',
+        },
+      });
+
+      if (!appointments || appointments.length === 0) {
+        return `No scheduled appointments found for ${date}. Nothing was cancelled.`;
+      }
+
+      const results = [];
+
+      for (const appt of appointments) {
+        try {
+          // Step 2a: Delete from Google Calendar
+          await deleteAppointment(appt.googleEventId);
+
+          // Step 2b: Mark as cancelled in DB
+          await prisma.appointment.update({
+            where: { id: appt.id },
+            data: { status: 'cancelled' },
+          });
+
+          // Step 2c: Send cancellation email to visitor
+          const apptDateStr = appt.appointmentDate.toISOString().split('T')[0];
+          await sendEmail({
+            to: appt.visitorEmail,
+            subject: `Your Meeting with Mithelesh on ${apptDateStr} Has Been Cancelled`,
+            body: `
+              <h2>Meeting Cancelled</h2>
+              <p>Hi ${appt.visitorName},</p>
+              <p>We regret to inform you that your scheduled meeting has been cancelled.</p>
+              <ul>
+                <li><strong>Date:</strong> ${apptDateStr}</li>
+                <li><strong>Reason for meeting:</strong> ${appt.reason}</li>
+              </ul>
+              <p>We sincerely apologise for the inconvenience. Please reach out to 
+              <a href="mailto:${process.env.ADMIN_EMAIL}">${process.env.ADMIN_EMAIL}</a> 
+              to reschedule at a convenient time.</p>
+              <p>Sorry for the inconvenience.</p>
+              <p><strong>Mithelesh's AI Assistant</strong></p>
+            `,
+          });
+
+          results.push(`✓ Cancelled: ${appt.visitorName} (${appt.visitorEmail}) — email sent.`);
+        } catch (innerErr) {
+          console.error(`[Tool: cancel_appointments_by_date] Failed for ${appt.googleEventId}:`, innerErr);
+          results.push(`✗ Failed to cancel: ${appt.visitorName} (${appt.visitorEmail}) — ${innerErr.message}`);
+        }
+      }
+
+      return `Cancelled ${appointments.length} appointment(s) for ${date}:\n${results.join('\n')}`;
+    } catch (err) {
+      console.error('[Tool: cancel_appointments_by_date] Error:', err);
+      return `Failed to cancel appointments for ${date}: ${err.message}`;
+    }
+  },
+});
+
 module.exports = {
   checkAvailabilityTool,
   bookAppointmentTool,
   blockCalendarTimeTool,
   cancelAppointmentTool,
+  cancelAppointmentsByDateTool,
 };
