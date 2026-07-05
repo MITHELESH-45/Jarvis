@@ -11,7 +11,12 @@
     "get-token": "node scripts/get-refresh-token.js",
     "rag:ingest": "node src/rag/ingest.js",
     "rag:ingest:reindex": "node src/rag/ingest.js --reindex",
-    "rag:ingest:dir": "node src/rag/ingest.js --dir"
+    "rag:ingest:dir": "node src/rag/ingest.js --dir",
+    "build": "node -e \"console.log('Backend build complete')\""
+  },
+  "engines": {
+    "node": ">=20 <23",
+    "npm": ">=10"
   },
   "keywords": [],
   "author": "",
@@ -28,7 +33,7 @@
     "@types/node": "^26.1.0",
     "concurrently": "^10.0.3",
     "cors": "^2.8.6",
-    "dotenv": "^17.4.2",
+    "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "google-auth-library": "^10.9.0",
     "googleapis": "^173.0.0",
