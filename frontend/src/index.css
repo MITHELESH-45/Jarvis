@@ -7,8 +7,38 @@
 
 body {
   @apply bg-white text-slate-900 antialiased transition-colors duration-300;
+  font-family: 'Inter', sans-serif;
 }
 
 .dark body {
   @apply bg-slate-900 text-white;
+}
+
+/* Markdown Specific Styling */
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+  @apply font-bold text-slate-800 dark:text-white mt-6 mb-3;
+}
+
+.markdown-body h1 { @apply text-3xl; }
+.markdown-body h2 { @apply text-2xl; }
+.markdown-body h3 { @apply text-xl; }
+
+.markdown-body p {
+  @apply mb-4 leading-relaxed;
+}
+
+.markdown-body ul {
+  @apply list-disc list-inside mb-4 pl-4;
+}
+
+.markdown-body li {
+  @apply mb-2;
+}
+
+.markdown-body a {
+  @apply text-electricBlue font-semibold underline decoration-2 underline-offset-4 transition-colors hover:text-blue-600 dark:hover:text-cyan-300;
+}
+
+.markdown-body strong {
+  @apply text-slate-800 dark:text-white font-bold;
 }

@@ -196,7 +196,7 @@ const ChatMessage = React.memo(function ChatMessage({ message, user, onRetry }: 
                 <span className="w-2 h-2 bg-electricBlue rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </div>
             ) : (
-              <div className={`prose prose-sm md:prose-base dark:prose-invert max-w-none break-words ${isUser ? 'prose-p:m-0' : ''}`}>
+              <div className={`markdown-body prose prose-sm md:prose-base dark:prose-invert max-w-none break-words ${isUser ? 'prose-p:m-0' : ''}`}>
                 {isUser ? (
                   <p className="whitespace-pre-wrap">{message.content}</p>
                 ) : (
