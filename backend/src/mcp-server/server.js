@@ -17,28 +17,28 @@ const { prisma } = require('../db');
 
 const MCP_PORT = process.env.MCP_PORT || 5001;
 
-// ─── Initialize MCP Server ────────────────────────────────────────────────────
+
 const server = new McpServer({
   name: 'jarvis-google-tools',
   version: '1.0.0',
 });
 
-// ─── Tool: check_availability ─────────────────────────────────────────────────
+
 server.tool(
   'check_availability',
   'Returns the list of FREE 1-hour appointment slots available on a given date between 08:00 and 17:00 IST. Each slot is exactly 1 hour long. Slots that overlap with existing calendar events are excluded.',
   { date: z.string().describe('Date to check in YYYY-MM-DD format (IST).') },
   async ({ date }) => {
     try {
-      // Fetch all booked/busy events for the day
+      
       const busySlots = await checkAvailability(date);
 
-      // Working-hours window: 08:00 – 17:00 IST (9 possible 1-hour slots)
-      const WORK_START_H = 8;   // 08:00
-      const WORK_END_H   = 17;  // 17:00 (last slot starts at 16:00)
+      
+      const WORK_START_H = 8;   
+      const WORK_END_H   = 17;  
       const IST_OFFSET   = '+05:30';
 
-      // Build every candidate 1-hour slot
+      
       const allSlots = [];
       for (let h = WORK_START_H; h < WORK_END_H; h++) {
         const hh    = String(h).padStart(2, '0');
@@ -52,21 +52,30 @@ server.tool(
         });
       }
 
-      // Remove any slot that overlaps with a busy event
+      
       const freeSlots = allSlots.filter((slot) => {
         return !busySlots.some((busy) => {
           const busyStart = new Date(busy.start);
           const busyEnd   = new Date(busy.end);
-          // Overlap: slot starts before busy ends AND slot ends after busy starts
+          
           return slot.start < busyEnd && slot.end > busyStart;
         });
       });
+
+      let busyText = "";
+      if (busySlots.length > 0) {
+        busyText = "\n\n(Note: The following times are already booked/busy on the calendar:\n" + busySlots.map(b => {
+          const startIST = new Date(b.start).toLocaleTimeString('en-US', {timeZone:'Asia/Kolkata', hour12:false, hour:'2-digit', minute:'2-digit'});
+          const endIST = new Date(b.end).toLocaleTimeString('en-US', {timeZone:'Asia/Kolkata', hour12:false, hour:'2-digit', minute:'2-digit'});
+          return `- ${startIST} to ${endIST} IST`;
+        }).join('\n') + ")";
+      }
 
       if (freeSlots.length === 0) {
         return {
           content: [{
             type: 'text',
-            text: `No available slots on ${date}. The calendar is fully booked between 08:00 and 17:00 IST.`,
+            text: `No available slots on ${date}. The calendar is fully booked between 08:00 and 17:00 IST.${busyText}`,
           }],
         };
       }
@@ -78,7 +87,7 @@ server.tool(
       return {
         content: [{
           type: 'text',
-          text: `Available 1-hour appointment slots on ${date} (IST):\n${slotList}\n\nEach slot is exactly 1 hour. Appointments are only accepted between 08:00 and 17:00 IST. To book, please share your preferred slot, name, email, and the purpose of the meeting.`,
+          text: `Available 1-hour appointment slots on ${date} (IST):\n${slotList}${busyText}\n\nEach slot is exactly 1 hour. Appointments are only accepted between 08:00 and 17:00 IST. To book, please share your preferred slot, name, email, and the purpose of the meeting.`,
         }],
       };
     } catch (err) {
@@ -88,7 +97,7 @@ server.tool(
   }
 );
 
-// ─── Tool: book_appointment ───────────────────────────────────────────────────
+
 server.tool(
   'book_appointment',
   'Books a meeting: creates a Google Calendar event, saves it to the database, and sends confirmation emails to the visitor and admin.',
@@ -102,7 +111,7 @@ server.tool(
   },
   async ({ visitorName, visitorEmail, date, startTime, endTime, reason }) => {
     try {
-      // 0. Conflict check — reject if the slot overlaps any existing event
+      
       const { hasConflict, conflictingEvent } = await checkConflict(date, startTime, endTime);
       if (hasConflict) {
         return {
@@ -113,10 +122,10 @@ server.tool(
         };
       }
 
-      // 1. Create Google Calendar event (times are treated as IST internally)
+      
       const googleEventId = await createAppointment({ visitorName, visitorEmail, date, startTime, endTime, reason });
 
-      // 2. Find visitor's user record
+      
       const visitorUser = await prisma.user.findUnique({ where: { email: visitorEmail } });
       if (!visitorUser) {
         return {
@@ -127,9 +136,9 @@ server.tool(
         };
       }
 
-      // 3. Save to PostgreSQL — store times as IST-aware UTC timestamps
-      //    toISTISOString returns a UTC ISO string (e.g. 2026-07-05T08:30:00.000Z for 14:00 IST)
-      //    which is correct because Prisma/Postgres stores DateTime in UTC
+      
+      
+      
       await prisma.appointment.create({
         data: {
           googleEventId,
@@ -144,14 +153,14 @@ server.tool(
         },
       });
 
-      // 4. Confirmation email to visitor (show IST times as-is from LLM)
+      
       await sendEmail({
         to: visitorEmail,
         subject: `Your Meeting with Mithelesh is Confirmed — ${date}`,
         body: `<h2>Meeting Confirmed!</h2><p>Hi ${visitorName},</p><p>Your meeting has been successfully booked.</p><ul><li><strong>Date:</strong> ${date}</li><li><strong>Time:</strong> ${startTime} – ${endTime} (IST)</li><li><strong>Reason:</strong> ${reason}</li></ul><p>Contact: <a href="mailto:${process.env.ADMIN_EMAIL}">${process.env.ADMIN_EMAIL}</a></p><p><strong>Mithelesh's AI Assistant</strong></p>`,
       });
 
-      // 5. Notification email to admin
+      
       await sendEmail({
         to: process.env.ADMIN_EMAIL,
         subject: `[New Appointment] ${visitorName} on ${date}`,
@@ -171,7 +180,7 @@ server.tool(
   }
 );
 
-// ─── Tool: block_calendar_time (Admin) ───────────────────────────────────────
+
 server.tool(
   'block_calendar_time',
   'Blocks a personal time slot on Google Calendar as "Busy". Admin use only.',
@@ -197,17 +206,17 @@ server.tool(
   }
 );
 
-// ─── Tool: cancel_appointment (Admin) ────────────────────────────────────────
+
 server.tool(
   'cancel_appointment',
   'Cancels an existing appointment by its Google Event ID. Removes from Google Calendar, marks database record as cancelled, and emails the visitor. Admin use only.',
   { googleEventId: z.string().describe('The Google Calendar Event ID of the appointment to cancel.') },
   async ({ googleEventId }) => {
     try {
-      // 1. Remove from Google Calendar
+      
       await deleteAppointment(googleEventId);
 
-      // 2. Fetch visitor info before deleting
+      
       const appointment = await prisma.appointment.findUnique({
         where: { googleEventId },
       });
@@ -215,10 +224,10 @@ server.tool(
         return { content: [{ type: 'text', text: `No appointment found with Google Event ID: ${googleEventId}.` }] };
       }
 
-      // 3. Permanently delete from DB
+      
       await prisma.appointment.delete({ where: { googleEventId } });
 
-      // 4. Send cancellation email to visitor
+      
       await sendEmail({
         to: appointment.visitorEmail,
         subject: `Your Meeting with Mithelesh Has Been Cancelled`,
@@ -234,6 +243,46 @@ server.tool(
     } catch (err) {
       console.error('[MCP Tool: cancel_appointment]', err);
       return { content: [{ type: 'text', text: `Failed to cancel appointment: ${err.message}` }], isError: true };
+    }
+  }
+);
+
+
+server.tool(
+  'list_appointments',
+  'Lists all scheduled appointments for a given date (YYYY-MM-DD) by querying Google Calendar directly. Admin use only.',
+  { date: z.string().describe('The date to list appointments for, in YYYY-MM-DD format.') },
+  async ({ date }) => {
+    try {
+      
+      const events = await checkAvailability(date);
+
+      if (!events || events.length === 0) {
+        return { content: [{ type: 'text', text: `No scheduled appointments or blocked slots found on Google Calendar for ${date}.` }] };
+      }
+
+      const formatted = events.map(evt => {
+        
+        const startIST = new Date(evt.start).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit' });
+        const endIST = new Date(evt.end).toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit' });
+        
+        let detailsStr = "";
+        if (evt.description) {
+          detailsStr = `\n    Details/Purpose: ${evt.description.replace(/\n/g, ' | ')}`;
+        }
+
+        return `- ${startIST} to ${endIST} IST: "${evt.summary || 'Busy'}" (Event ID: ${evt.eventId})${detailsStr}`;
+      }).join('\n\n');
+
+      return {
+        content: [{
+          type: 'text',
+          text: `Google Calendar schedule for ${date}:\n${formatted}`,
+        }],
+      };
+    } catch (err) {
+      console.error('[MCP Tool: list_appointments]', err);
+      return { content: [{ type: 'text', text: `Failed to list appointments from Calendar: ${err.message}` }], isError: true };
     }
   }
 );
@@ -347,7 +396,7 @@ app.post('/messages', async (req, res) => {
   await transport.handlePostMessage(req, res);
 });
 
-// Health check
+
 app.get('/', (req, res) => {
   res.json({ status: 'ok', service: 'Jarvis MCP Google Tools Server', port: MCP_PORT });
 });

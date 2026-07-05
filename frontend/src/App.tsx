@@ -4,7 +4,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
-// Route-based code splitting: each page is loaded only when needed
+
 const LandingPage = lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
 const ChatPage    = lazy(() => import('./pages/ChatPage').then(m => ({ default: m.ChatPage })));
 

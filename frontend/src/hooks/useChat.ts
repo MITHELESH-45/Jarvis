@@ -16,10 +16,10 @@ export function useChat() {
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const { token } = useAuth();
 
-  // Load full chat history from DB when the user logs in
+  
   useEffect(() => {
     if (!token) {
-      // User logged out — clear local messages
+      
       setMessages([]);
       setHistoryLoaded(false);
       return;
@@ -59,10 +59,10 @@ export function useChat() {
       const userMessageId = Date.now().toString();
       const assistantMessageId = (Date.now() + 1).toString();
 
-      // Immediately append user message
+      
       setMessages((prev) => [...prev, { id: userMessageId, role: 'user', content }]);
 
-      // Add placeholder for streaming assistant response
+      
       setMessages((prev) => [
         ...prev,
         { id: assistantMessageId, role: 'assistant', content: '', isStreaming: true },
@@ -71,7 +71,7 @@ export function useChat() {
       setIsLoading(true);
 
       try {
-        const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000').replace(/['"]/g, '').replace(/\/+$/, '');
+        const backendUrl = (import.meta.env.VITE_BACKEND_URL || 'http:
         const response = await fetch(`${backendUrl}/api/chat`, {
           method: 'POST',
           headers: {

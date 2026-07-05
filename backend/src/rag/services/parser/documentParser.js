@@ -1,6 +1,3 @@
-/**
- * Section type patterns — ordered most-specific first.
- */
 const SECTION_PATTERNS = [
   { type: "projects",        patterns: [/^projects?$/i, /^(personal|side|key)\s+projects?$/i, /^project\s+showcase$/i] },
   { type: "work_experience", patterns: [/^(work\s+)?experience$/i, /^professional\s+experience$/i, /^employment(\s+history)?$/i, /^career(\s+history)?$/i] },
@@ -40,18 +37,11 @@ function detectContentType(content) {
   return "paragraph";
 }
 
-/**
- * Stage 3 — Structural Document Parser.
- *
- * Analyzes cleaned documents and extracts a hierarchical section tree.
- * Each DocumentSection maps to a logical unit (project, experience entry, etc.)
- * with parent/child relationships in the `subsections` array.
- */
 class DocumentParser {
   parse(docs) {
     const allSections = [];
 
-    // Group pages by document
+    
     const byDocument = new Map();
     for (const doc of docs) {
       const key = doc.metadata.documentId;
@@ -160,7 +150,7 @@ class DocumentParser {
 
     flushBuffer();
 
-    // Fallback: whole doc as one section
+    
     if (sections.length === 0) {
       sections.push({
         title: documentName || filename.replace(/\.[^.]+$/, ""),
@@ -177,7 +167,7 @@ class DocumentParser {
       });
     }
 
-    // Assign content types based on accumulated content
+    
     for (const section of sections) {
       if (section.content) section.contentType = detectContentType(section.content);
       for (const sub of section.subsections) {

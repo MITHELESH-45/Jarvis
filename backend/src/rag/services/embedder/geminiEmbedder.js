@@ -2,23 +2,6 @@ const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
 const { chunkArray, sleep } = require("../../utils/index.js");
 const { logger } = require("../../logger/index.js");
 
-/**
- * Stage 6 — Gemini Embeddings Service.
- *
- * Free-tier quota: 100 embed_content requests per minute.
- * Each document in a batch counts as ONE request.
- * With batch size 5 and 13s inter-batch delay → ~23 batches/min → 115 req/min safe.
- *
- * Rate-limit handling:
- * - Parses the exact retryDelay from the 429 error body ("Please retry in Xs")
- * - Waits the API-specified delay before retrying (not a fixed backoff)
- * - Falls back to exponential backoff for non-rate-limit errors
- *
- * Validation:
- * - Validates every embedding after each batch returns
- * - Re-embeds any chunk that got an empty [] from LangChain's allSettled handling
- * - Logs every failure with full detail — nothing is silently dropped
- */
 class GeminiEmbedder {
   constructor({ apiKey, batchSize, interBatchDelayMs, maxRetries, retryDelayMs }) {
     this.batchSize = batchSize;
@@ -31,21 +14,16 @@ class GeminiEmbedder {
     });
   }
 
-  /**
-   * Parses the retry delay (in ms) from a Gemini 429 error message.
-   * The API embeds it as "Please retry in 50.13s" or "retryDelay: \"50s\"".
-   * Returns null if not found.
-   */
-  _parseRetryDelay(errorMessage) {
+    _parseRetryDelay(errorMessage) {
     const msg = String(errorMessage);
 
-    // Pattern: "Please retry in 50.135463367s"
+    
     const retryMatch = msg.match(/Please retry in ([\d.]+)s/i);
     if (retryMatch) {
-      return Math.ceil(parseFloat(retryMatch[1]) * 1000) + 2000; // add 2s buffer
+      return Math.ceil(parseFloat(retryMatch[1]) * 1000) + 2000; 
     }
 
-    // Pattern: "retryDelay":"50s"
+    
     const jsonMatch = msg.match(/"retryDelay"\s*:\s*"([\d.]+)s"/);
     if (jsonMatch) {
       return Math.ceil(parseFloat(jsonMatch[1]) * 1000) + 2000;
@@ -87,14 +65,14 @@ class GeminiEmbedder {
       const batch = batches[i];
       const batchLabel = `Batch ${i + 1}/${batches.length}`;
 
-      // ── Embed with retry ────────────────────────────────────────────────
+      
       let batchResults = null;
       let batchFailed = false;
 
       for (let attempt = 1; attempt <= this.maxRetries + 1; attempt++) {
         try {
           batchResults = await this._embedSingleBatch(batch);
-          break; // success
+          break; 
         } catch (err) {
           const isQuota = this._isRateLimit(err);
           const apiDelay = this._parseRetryDelay(err.message);
@@ -120,12 +98,12 @@ class GeminiEmbedder {
           logger.error(`Chunk in failed batch — id="${chunk.chunkId}" | section="${chunk.metadata?.section}"`);
           skipped.push(chunk);
         }
-        // Still apply inter-batch delay even after failure
+        
         if (i < batches.length - 1) await sleep(this.interBatchDelayMs);
         continue;
       }
 
-      // ── Validate each returned embedding ────────────────────────────────
+      
       const valid = [];
       const needsRetry = [];
 
@@ -139,7 +117,7 @@ class GeminiEmbedder {
 
       results.push(...valid);
 
-      // ── Re-embed individually any that came back empty ──────────────────
+      
       if (needsRetry.length > 0) {
         logger.warn(
           `${batchLabel} — ${needsRetry.length} chunk(s) had empty embeddings. Re-embedding individually...`
@@ -165,14 +143,14 @@ class GeminiEmbedder {
       const validCount = valid.length + (needsRetry.length - (needsRetry.length - results.length + valid.length));
       logger.info(`${batchLabel} — complete (${results.length} total valid so far)`);
 
-      // ── Throttle: wait between batches to respect RPM quota ─────────────
+      
       if (i < batches.length - 1) {
         logger.info(`Waiting ${(this.interBatchDelayMs / 1000).toFixed(0)}s before next batch (rate limit buffer)...`);
         await sleep(this.interBatchDelayMs);
       }
     }
 
-    // ── Final report ────────────────────────────────────────────────────────
+    
     logger.info(
       `\nEmbedding complete:\n` +
       `  Input chunks     : ${chunks.length}\n` +
@@ -204,10 +182,7 @@ class GeminiEmbedder {
     }));
   }
 
-  /**
-   * Recovery path: embed one chunk at a time with full rate-limit awareness.
-   */
-  async _embedSingleChunk(chunk, contextLabel) {
+    async _embedSingleChunk(chunk, contextLabel) {
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
         const vector = await this.embeddings.embedQuery(chunk.content);

@@ -1,16 +1,4 @@
 #!/usr/bin/env node
-/**
- * RAG Ingestion Entry Point
- *
- * Usage (from backend/ directory):
- *   node src/rag/ingest.js <file.pdf> [file2.pdf ...]
- *   node src/rag/ingest.js --reindex <file.pdf>
- *   node src/rag/ingest.js --dir ./knowledge-base
- *
- * Flags:
- *   --reindex     Delete existing vectors before uploading (full re-index)
- *   --dir <path>  Ingest all supported files in a directory
- */
 
 const path = require("path");
 const fs = require("fs");
@@ -76,7 +64,7 @@ async function main() {
     }
   }
 
-  // Load and validate config
+  
   let config;
   try {
     config = loadIngestionConfig();

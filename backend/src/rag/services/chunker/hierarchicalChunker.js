@@ -1,20 +1,6 @@
 const { RecursiveCharacterTextSplitter } = require("@langchain/textsplitters");
 const { estimateTokens } = require("../../utils/index.js");
 
-/**
- * Stage 4 — Hierarchical Chunk Builder.
- *
- * TWO-STAGE strategy:
- *
- * Stage 1 (Primary):  Each logical entity (project, experience, FAQ entry…)
- *                     becomes exactly ONE chunk. Never splits inside a logical unit.
- *
- * Stage 2 (Fallback): If a chunk exceeds `maxChunkSize`, ONLY THEN does
- *                     RecursiveCharacterTextSplitter kick in.
- *
- * This class implements an IChunker-compatible interface.
- * Swap with SemanticChunker or LLMChunker without touching the pipeline.
- */
 class HierarchicalChunker {
   constructor({ maxChunkSize, chunkOverlap }) {
     this.maxChunkSize = maxChunkSize;
@@ -79,7 +65,7 @@ class HierarchicalChunker {
       return;
     }
 
-    // Fallback splitting
+    
     const splits = await this.fallbackSplitter.splitText(trimmed);
     splits.forEach((splitContent, splitIndex) => {
       candidates.push(

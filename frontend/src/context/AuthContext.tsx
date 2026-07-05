@@ -73,9 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     localStorage.removeItem('user');
     localStorage.removeItem('token');
-    // Keeping hasSeenIntro strictly as per requirement, or we can clear all.
-    // The requirement says "Clear: React State, localStorage". 
-    // To preserve the theme, we specifically remove auth items.
+    
+    
+    
   };
 
   return (

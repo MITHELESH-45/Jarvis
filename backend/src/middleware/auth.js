@@ -4,11 +4,6 @@ const { prisma } = require('../db');
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-/**
- * Verifies a Google ID token and returns the user payload.
- * @param {string} token - The Google ID token.
- * @returns {Promise<{googleId: string, email: string, name: string, pictureUrl: string}>}
- */
 async function verifyGoogleToken(token) {
   const ticket = await client.verifyIdToken({
     idToken: token,
@@ -26,9 +21,6 @@ async function verifyGoogleToken(token) {
   };
 }
 
-/**
- * Express middleware to verify the custom session JWT token and attach user to req.user.
- */
 async function requireAuth(req, res, next) {
   try {
     const authHeader = req.headers.authorization;

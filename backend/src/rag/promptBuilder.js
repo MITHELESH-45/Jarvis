@@ -1,18 +1,5 @@
-/**
- * Prompt Builder Service
- * 
- * Purpose: Constructs the final, strictly constrained prompt for the Generation LLM.
- * Architecture: Enforces anti-hallucination rules, recruiter-friendly tone, and injects 
- *               the dynamic context payload.
- */
 class PromptBuilder {
-  /**
-   * Builds the system and human prompt strings.
-   * @param {string} query - The original user query.
-   * @param {Array} contextBlocks - The compressed context blocks.
-   * @returns {Object} { systemPrompt, humanPrompt }
-   */
-  build(query, contextBlocks) {
+    build(query, contextBlocks) {
     let contextPayload = "No relevant context found in the knowledge base.";
 
     if (contextBlocks && contextBlocks.length > 0) {

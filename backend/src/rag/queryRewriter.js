@@ -5,16 +5,9 @@ const { StringOutputParser } = require("@langchain/core/output_parsers");
 const { logger } = require("./logger/index.js");
 require("dotenv").config();
 
-/**
- * Query Rewriter Service
- * 
- * Purpose: Improves retrieval quality by correcting spelling, expanding abbreviations, 
- *          and normalizing terminology before the query hits the vector database.
- * Architecture: Uses Gemini Flash for ultra-low latency text transformation.
- */
 class QueryRewriter {
   constructor() {
-    // Primary: Try OpenAI
+    
     if (process.env.OPENAI_API_KEY) {
       this.llm = new ChatOpenAI({
         openAIApiKey: process.env.OPENAI_API_KEY,
@@ -50,12 +43,7 @@ CRITICAL RULES:
     this.chain = this.prompt.pipe(this.llm).pipe(new StringOutputParser());
   }
 
-  /**
-   * Rewrite the user's query.
-   * @param {string} rawQuery - The original user input.
-   * @returns {Promise<string>} The optimized search query.
-   */
-  async rewrite(rawQuery) {
+    async rewrite(rawQuery) {
     const startMs = Date.now();
     try {
       const rewrittenQuery = await this.chain.invoke({ query: rawQuery });
@@ -72,7 +60,7 @@ CRITICAL RULES:
       return cleanRewritten;
     } catch (error) {
       logger.error(`[QueryRewriter] Failed to rewrite query: ${error.message}`);
-      // Fault Tolerance: Graceful degradation to the raw query if LLM fails
+      
       return rawQuery; 
     }
   }

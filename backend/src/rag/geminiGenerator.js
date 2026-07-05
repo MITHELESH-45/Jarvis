@@ -4,25 +4,19 @@ const { SystemMessage, HumanMessage } = require("@langchain/core/messages");
 const { logger } = require("./logger/index.js");
 require("dotenv").config();
 
-/**
- * Gemini Generator Service
- * 
- * Purpose: Executes the final Answer Generation phase using Gemini Flash.
- * Architecture: Enforces structured JSON output. Implements retries and fault tolerance.
- */
 class GeminiGenerator {
   constructor() {
-    // 1. Initialize Gemini (Primary RAG Engine)
+    
     if (process.env.GEMINI_API_KEY) {
       this.geminiLlm = new ChatGoogleGenerativeAI({
         apiKey: process.env.GEMINI_API_KEY,
         model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
         temperature: 0.4,
-        maxRetries: 1, // Keep low to quickly trigger fallback
+        maxRetries: 1, 
       });
     }
 
-    // 2. Initialize OpenAI (Fallback Engine)
+    
     if (process.env.OPENAI_API_KEY) {
       this.openAiLlm = new ChatOpenAI({
         openAIApiKey: process.env.OPENAI_API_KEY,
@@ -37,13 +31,7 @@ class GeminiGenerator {
     }
   }
 
-  /**
-   * Generates the final RAG response.
-   * @param {string} systemPrompt - The constrained system instructions with context.
-   * @param {string} humanPrompt - The user query.
-   * @returns {Promise<Object>} The structured JSON response containing answer, confidence, and sources.
-   */
-  async generate(systemPrompt, humanPrompt) {
+    async generate(systemPrompt, humanPrompt) {
     const startMs = Date.now();
     logger.debug(`[GeminiGenerator] Commencing generation phase...`);
 
@@ -57,12 +45,12 @@ class GeminiGenerator {
       let usedEngine = "Gemini";
 
       try {
-        // Attempt Primary: Gemini
+        
         if (!this.geminiLlm) throw new Error("Gemini not configured");
         response = await this.geminiLlm.invoke(messages);
       } catch (geminiError) {
         logger.warn(`[GeminiGenerator] Gemini failed (${geminiError.message}). Attempting OpenAI fallback...`);
-        // Fallback: OpenAI
+        
         if (!this.openAiLlm) throw new Error("OpenAI fallback not configured");
         response = await this.openAiLlm.invoke(messages);
         usedEngine = "OpenAI";
@@ -70,7 +58,7 @@ class GeminiGenerator {
       
       let jsonString = response.content.trim();
       
-      // Clean markdown formatting if present
+      
       if (jsonString.startsWith("```json")) {
         jsonString = jsonString.replace(/^```json\n?/, "").replace(/\n?```$/, "");
       } else if (jsonString.startsWith("```")) {

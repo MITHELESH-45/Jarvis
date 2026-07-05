@@ -5,24 +5,24 @@ const { z } = require('zod');
 
 const MCP_SERVER_URL = process.env.MCP_SERVER_URL || 'http://localhost:5001';
 
-// ─── Singleton MCP Client ─────────────────────────────────────────────────────
-// We maintain ONE persistent client connection to the MCP Server for the
-// lifetime of the Express process. Creating a new SSE connection per request
-// causes "stream is not readable" because closing the client tears down the
-// underlying HTTP stream that the server has already removed from its map.
+
+
+
+
+
 let _mcpClient = null;
 let _langChainTools = null;
 let _isConnecting = false;
 
 async function getOrCreateMcpClient() {
-  // Already connected and tools loaded — reuse
+  
   if (_mcpClient && _langChainTools) {
     return { client: _mcpClient, langChainTools: _langChainTools };
   }
 
-  // Guard against concurrent connection attempts
+  
   if (_isConnecting) {
-    // Poll until the connection is established (max 10s)
+    
     for (let i = 0; i < 100; i++) {
       await new Promise((r) => setTimeout(r, 100));
       if (_mcpClient && _langChainTools) {
@@ -47,11 +47,11 @@ async function getOrCreateMcpClient() {
 
     const langChainTools = convertMcpToolsToLangChain(mcpTools, client);
 
-    // Cache globally
+    
     _mcpClient = client;
     _langChainTools = langChainTools;
 
-    // If the connection drops, reset so the next request reconnects
+    
     transport.onclose = () => {
       console.warn('[MCP Bridge] SSE connection closed. Will reconnect on next request.');
       _mcpClient = null;
@@ -69,7 +69,7 @@ async function getOrCreateMcpClient() {
   }
 }
 
-// ─── JSON Schema → Zod Converter ─────────────────────────────────────────────
+
 function jsonSchemaPropertiesToZod(properties = {}, required = []) {
   const shape = {};
   for (const [key, def] of Object.entries(properties)) {
@@ -88,7 +88,7 @@ function jsonSchemaPropertiesToZod(properties = {}, required = []) {
   return z.object(shape);
 }
 
-// ─── MCP Tool → LangChain Tool Converter ─────────────────────────────────────
+
 function convertMcpToolsToLangChain(mcpTools, mcpClient) {
   return mcpTools.map((mcpTool) => {
     const inputSchema = mcpTool.inputSchema || {};
@@ -112,7 +112,7 @@ function convertMcpToolsToLangChain(mcpTools, mcpClient) {
           }
           return JSON.stringify(result);
         } catch (err) {
-          // On tool call failure, reset the singleton so next request reconnects
+          
           console.error(`[MCP Bridge] Error calling remote tool ${mcpTool.name}:`, err.message);
           _mcpClient = null;
           _langChainTools = null;

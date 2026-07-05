@@ -2,13 +2,6 @@ const { GoogleGenerativeAIEmbeddings } = require("@langchain/google-genai");
 const { logger } = require("./logger/index.js");
 require("dotenv").config();
 
-/**
- * EmbedQuery Service
- * 
- * Purpose: Generates dense vector embeddings for search queries.
- * Architecture: Utilizes Google Generative AI (gemini-embedding-001) to ensure 
- *               the search query lives in the same vector space as the indexed chunks.
- */
 class QueryEmbedder {
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -21,12 +14,7 @@ class QueryEmbedder {
     });
   }
 
-  /**
-   * Embeds a single string query.
-   * @param {string} query - The search query.
-   * @returns {Promise<number[]>} The vector embedding (typically 3072 dimensions for Gemini).
-   */
-  async embed(query) {
+    async embed(query) {
     const startMs = Date.now();
     try {
       const vector = await this.embeddings.embedQuery(query);
@@ -41,7 +29,7 @@ class QueryEmbedder {
   }
 }
 
-// Export as singleton for connection pooling / resource reuse
+
 const queryEmbedder = new QueryEmbedder();
 
 module.exports = {

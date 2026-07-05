@@ -10,13 +10,13 @@ import type { CredentialResponse } from '@react-oauth/google';
 import { Bot, Calendar, Mail, Shield, Moon, Sun } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// ─── Subtle Background Animation ──────────────────────────────────────────────
+
 function DriftingParticles() {
   const groupRef = useRef<THREE.Group>(null);
   
   useFrame((state) => {
     if (groupRef.current) {
-      // Very slow drift for the particles/stars
+      
       groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.02;
       groupRef.current.rotation.x = state.clock.getElapsedTime() * 0.01;
     }
@@ -29,7 +29,7 @@ function DriftingParticles() {
   );
 }
 
-// ─── Typewriter Hook ────────────────────────────────────────────────────────
+
 const INTRO_TEXT = "Hello. I am Jarvis, Mithelesh's Personal AI Assistant and Digital Twin. I can manage his calendar, send emails, and represent him professionally.";
 
 function useTypewriter(text: string, speed = 40) {
@@ -80,14 +80,14 @@ export function LandingPage() {
   return (
     <div className="h-[100dvh] overflow-hidden bg-slate-950 text-slate-50 flex flex-col relative">
       
-      {/* Subtle 3D Animated Background */}
+      {}
       <div className="absolute inset-0 z-0 opacity-60">
         <Canvas camera={{ position: [0, 0, 1] }}>
           <DriftingParticles />
         </Canvas>
       </div>
 
-      {/* Navbar */}
+      {}
       <nav className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-slate-800/40 bg-slate-950/60 backdrop-blur-md z-20">
         <div className="flex items-center space-x-2.5">
           <Bot className="w-7 h-7 text-electricBlue" />
@@ -106,10 +106,10 @@ export function LandingPage() {
         </button>
       </nav>
 
-      {/* Main Content Layout */}
+      {}
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 z-10 overflow-hidden">
         
-        {/* Left Column: Sign-in and Features */}
+        {}
         <div className="flex flex-col justify-center items-center lg:items-end px-8 py-10 lg:pr-16 lg:border-r border-slate-800/50">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
@@ -117,7 +117,7 @@ export function LandingPage() {
             transition={{ duration: 0.8, ease: 'easeOut' }}
             className="w-full max-w-md flex flex-col space-y-8"
           >
-            {/* Title */}
+            {}
             <div className="text-left">
               <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight mb-3">
                 Mithelesh's AI-Powered<br />
@@ -130,7 +130,7 @@ export function LandingPage() {
               </p>
             </div>
 
-            {/* Google Login */}
+            {}
             <div className="w-full flex flex-col space-y-3 bg-slate-900/60 backdrop-blur-md p-6 rounded-3xl border border-slate-800/80 shadow-2xl">
               {isLoggingIn ? (
                 <div className="flex items-center justify-center space-x-3 py-2 text-slate-400">
@@ -155,7 +155,7 @@ export function LandingPage() {
               </p>
             </div>
 
-            {/* Feature Chips */}
+            {}
             <div className="flex flex-col space-y-3">
               {features.map((f, i) => (
                 <motion.div
@@ -173,9 +173,9 @@ export function LandingPage() {
           </motion.div>
         </div>
 
-        {/* Right Column: Hero Typewriter Text */}
+        {}
         <div className="flex flex-col justify-center items-center lg:items-start px-8 py-10 lg:pl-16 relative">
-          {/* Subtle glow behind the text */}
+          {}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-electricBlue/10 blur-[100px] rounded-full pointer-events-none" />
           
           <motion.div

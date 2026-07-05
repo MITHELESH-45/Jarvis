@@ -26,13 +26,6 @@ const TAG_DICTIONARY = {
   pdf:        ["pdf", "document parsing"],
 };
 
-/**
- * Stage 5 — Metadata Enricher.
- *
- * Transforms raw ChunkCandidates into fully-enriched chunks.
- * Assigns deterministic chunk IDs, sequential indexes, ISO timestamps,
- * and automatically inferred topic tags from content.
- */
 class MetadataEnricher {
   enrich(candidates) {
     return candidates.map((candidate, index) => {

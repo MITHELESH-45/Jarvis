@@ -3,39 +3,27 @@ const { retrievalPipeline } = require("../rag/retrievalPipeline");
 const { logger } = require("../rag/logger/index.js");
 const { handleChatMessage } = require("../agents/orchestrator");
 
-/**
- * Chat Service
- * 
- * Purpose: The central brain of the API layer. Uses the Router Agent to classify the 
- *          incoming request and dynamically delegates it to either the RAG or Action pipeline.
- */
 class ChatService {
   constructor() {
     this.routerAgent = new RouterAgent();
   }
 
-  /**
-   * Process a user query from end-to-end.
-   * @param {string} query - The raw user input.
-   * @returns {Promise<Object>} The final system response.
-   */
-  async processQuery(query, userId) {
+    async processQuery(query, userId, role = 'visitor') {
     const startMs = Date.now();
-    logger.info(`[ChatService] Received new query: "${query}" (User: ${userId})`);
+    logger.info(`[ChatService] Received new query: "${query}" (User: ${userId}, Role: ${role})`);
 
     try {
-      // 1. Route the query using OpenAI structured outputs
+      
       const routingDecision = await this.routerAgent.route(query);
 
       let response;
 
-      // 2. Delegate based on the Router's decision
+      
       switch (routingDecision.route) {
         case "ACTION":
           logger.info(`[ChatService] Delegating to ACTION Pipeline (Reason: ${routingDecision.reason})`);
-          // Execute the real MCP action pipeline
-          // Role is set to 'admin' generically for now, or you could pass role through processQuery
-          const actionText = await handleChatMessage({ userId, role: 'visitor', message: query });
+          
+          const actionText = await handleChatMessage({ userId, role, message: query });
           response = {
             answer: actionText,
             confidence: 0.99,
@@ -60,7 +48,7 @@ class ChatService {
           response = await retrievalPipeline.execute(query);
       }
 
-      // 3. Append routing metadata for frontend telemetry
+      
       const finalPayload = {
         ...response,
         _metadata: {

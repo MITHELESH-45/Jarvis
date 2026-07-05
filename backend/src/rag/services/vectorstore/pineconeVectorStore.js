@@ -2,13 +2,6 @@ const { Pinecone } = require("@pinecone-database/pinecone");
 const { chunkArray, withRetry } = require("../../utils/index.js");
 const { logger } = require("../../logger/index.js");
 
-/**
- * Stage 7 — Pinecone Vector Store.
- *
- * Pinecone SDK v8 breaking changes (confirmed from SDK source):
- *   - client.index()  → { name: 'index-name' }  (object, NOT a string)
- *   - index.upsert()  → { records: [...] }        (object with records key, NOT a raw array)
- */
 class PineconeVectorStore {
   constructor({ apiKey, indexName, upsertBatchSize, maxRetries, retryDelayMs }) {
     this.indexName = indexName;
@@ -18,11 +11,7 @@ class PineconeVectorStore {
     this.client = new Pinecone({ apiKey });
   }
 
-  /**
-   * Pinecone metadata only accepts: string | number | boolean | string[].
-   * Converts anything else to a safe representation.
-   */
-  _sanitizeMetadata(raw) {
+    _sanitizeMetadata(raw) {
     const safe = {};
     for (const [key, value] of Object.entries(raw)) {
       if (value === null || value === undefined) {
@@ -42,11 +31,7 @@ class PineconeVectorStore {
     return safe;
   }
 
-  /**
-   * Validates a single embedding before sending to Pinecone.
-   * Returns { valid: true, record } or { valid: false, reason }.
-   */
-  _validateRecord(embeddedChunk, index) {
+    _validateRecord(embeddedChunk, index) {
     const { chunk, embedding } = embeddedChunk;
 
     if (!chunk) {
@@ -81,14 +66,7 @@ class PineconeVectorStore {
     };
   }
 
-  /**
-   * Converts EmbeddedChunks into validated Pinecone v8 records.
-   *
-   * Every chunk is validated individually.
-   * Invalid chunks are logged with full detail — nothing is silently dropped.
-   * Returns only valid records (safe to send to Pinecone).
-   */
-  buildRecords(embeddedChunks) {
+    buildRecords(embeddedChunks) {
     const valid = [];
     const invalid = [];
 

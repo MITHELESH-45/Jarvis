@@ -5,14 +5,6 @@ const { SystemMessage } = require("@langchain/core/messages");
 const { logger } = require("./logger/index.js");
 require("dotenv").config();
 
-/**
- * Metadata Filter Extraction Service
- * 
- * Purpose: Analyzes the user query to dynamically construct Pinecone-compatible 
- *          metadata filters (e.g., $eq, $in) based on detected intents.
- * Architecture: Uses Gemini Flash with JSON mode to guarantee a strictly structured 
- *               filter object that can be passed directly to the Pinecone query method.
- */
 class MetadataFilterExtractor {
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -20,7 +12,7 @@ class MetadataFilterExtractor {
       apiKey,
       model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
       temperature: 0.0, 
-      maxRetries: 1, // Fast fail
+      maxRetries: 1, 
     });
 
     const SYSTEM_PROMPT = `You are a strict JSON metadata filter generator for Pinecone.
@@ -42,18 +34,13 @@ Rules:
     ]);
   }
 
-  /**
-   * Extracts metadata filters from the query.
-   * @param {string} query - The rewritten user query.
-   * @returns {Promise<Object>} Pinecone compatible filter object.
-   */
-  async extractFilter(query) {
+    async extractFilter(query) {
     const startMs = Date.now();
     try {
       const response = await this.prompt.pipe(this.llm).invoke({ query });
       let jsonString = response.content.trim();
       
-      // Clean potential markdown blocks returned by the LLM
+      
       if (jsonString.startsWith("```json")) {
         jsonString = jsonString.replace(/^```json\n?/, "").replace(/\n?```$/, "");
       } else if (jsonString.startsWith("```")) {
@@ -72,7 +59,7 @@ Rules:
       return filterObj;
     } catch (error) {
       logger.warn(`[MetadataFilter] Failed to extract filter (returning empty {}): ${error.message}`);
-      return {}; // Graceful degradation
+      return {}; 
     }
   }
 }

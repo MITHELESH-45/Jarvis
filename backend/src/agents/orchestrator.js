@@ -4,7 +4,7 @@ const { HumanMessage, AIMessage, SystemMessage, ToolMessage } = require('@langch
 const { prisma } = require('../db');
 const { getMcpLangChainTools } = require('./mcpBridge');
 
-// ─── LLM Factory ─────────────────────────────────────────────────────────────
+
 function createLLM() {
   const openAiKey = process.env.OPENAI_API_KEY;
   const geminiKey = process.env.GEMINI_API_KEY;
@@ -15,7 +15,7 @@ function createLLM() {
     return new ChatOpenAI({ modelName: 'gpt-4o', temperature: 0.3, openAIApiKey: openAiKey });
   }
   if (isValidKey(geminiKey)) {
-    // gemini-2.0-flash-lite has the most generous free-tier quota
+    
     const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash-lite';
     console.log(`[Orchestrator] LLM: Google Gemini (${model}) [fallback]`);
     return new ChatGoogleGenerativeAI({ model, temperature: 0.3, apiKey: geminiKey });
@@ -24,7 +24,7 @@ function createLLM() {
 }
 
 const VISITOR_TOOLS = ['check_availability', 'book_appointment'];
-const ADMIN_TOOLS   = ['check_availability', 'book_appointment', 'block_calendar_time', 'cancel_appointment', 'cancel_appointments_by_date'];
+const ADMIN_TOOLS   = ['check_availability', 'book_appointment', 'block_calendar_time', 'cancel_appointment', 'cancel_appointments_by_date', 'list_appointments'];
 
 function buildVisitorSystemPrompt(userName, userEmail) {
   return `You are Mithelesh's executive AI assistant and Digital Twin.
@@ -41,7 +41,8 @@ function buildVisitorSystemPrompt(userName, userEmail) {
 function buildAdminSystemPrompt(userName, userEmail) {
   return `You are Mithelesh's personal AI Digital Twin with full administrative access.
 - The currently logged-in admin is: Name: "${userName}", Email: "${userEmail}".
-- You can check availability, book appointments, block time slots, cancel appointments by date, and cancel individual appointments.
+- You can check availability, list appointments, book appointments, block time slots, cancel appointments by date, and cancel individual appointments.
+- CRITICAL: When asked to show or list scheduled appointments, ALWAYS use the \`list_appointments\` tool. Do NOT use \`check_availability\` for this, as it strips out private details.
 - To cancel all appointments for a specific date, use the cancel_appointments_by_date tool — you do NOT need individual event IDs.
 - All times the user mentions are in IST (Indian Standard Time, UTC+5:30). Always pass times to tools in 24-hour HH:MM:SS format in IST (e.g. "2 PM IST" = "14:00:00").
 - Be direct and efficient.
@@ -49,14 +50,14 @@ function buildAdminSystemPrompt(userName, userEmail) {
 - Today's date: ${new Date().toISOString().split('T')[0]} (IST)`;
 }
 
-// ─── Core Handler ─────────────────────────────────────────────────────────────
+
 async function handleChatMessage({ userId, role, message }) {
-  // Step 1: Load conversation history and user info
+  
   const [history, currentUser] = await Promise.all([
     prisma.chatMessage.findMany({
       where: { userId },
       orderBy: { timestamp: 'desc' },
-      // Only last 3 messages for context — prevents stale actions from old turns
+      
       take: 3,
     }),
     prisma.user.findUnique({ where: { id: userId } }),
@@ -86,7 +87,7 @@ async function handleChatMessage({ userId, role, message }) {
 
   console.log(`[Orchestrator] Role: ${role}. Tools: [${tools.map((t) => t.name).join(', ')}]`);
 
-  // Step 4: Build message history
+  
   const lcMessages = [
     new SystemMessage(systemPrompt),
     ...history.map((msg) =>
@@ -95,11 +96,11 @@ async function handleChatMessage({ userId, role, message }) {
     new HumanMessage(message),
   ];
 
-  // Step 5: Bind tools to LLM
+  
   const llm = createLLM();
   const llmWithTools = llm.bindTools(tools);
 
-  // Step 6: Agentic loop
+  
   let finalResponse = '';
   const toolMap = Object.fromEntries(tools.map((t) => [t.name, t]));
   let currentMessages = [...lcMessages];

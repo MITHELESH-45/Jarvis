@@ -1,9 +1,5 @@
 const { SystemMessagePromptTemplate, HumanMessagePromptTemplate, ChatPromptTemplate } = require("@langchain/core/prompts");
 
-/**
- * The master prompt for the Router Agent.
- * This instructs the LLM on exactly how to classify incoming requests without answering them.
- */
 const ROUTER_SYSTEM_PROMPT = `You are the master routing intelligence for Jarvis, an AI Digital Twin of Mithelesh K.
 Your SOLE responsibility is to analyze the user's input and classify it into one of the designated execution routes.
 

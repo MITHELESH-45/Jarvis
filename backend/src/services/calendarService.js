@@ -3,41 +3,26 @@ const { oauth2Client } = require('./googleAuth');
 
 const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
 
-// IST offset: UTC+5:30
+
 const IST_OFFSET = '+05:30';
 const TIMEZONE   = 'Asia/Kolkata';
 
-/**
- * Converts a date string (YYYY-MM-DD) and a bare time string (HH:MM or HH:MM:SS)
- * into a proper IST ISO string with offset (e.g. "2026-07-05T14:00:00+05:30").
- * This prevents JavaScript from silently treating the time as local machine time.
- *
- * @param {string} timeVal - Time in HH:MM or HH:MM:SS format, OR a full ISO string.
- * @param {string} dateStr - Date in YYYY-MM-DD format.
- * @returns {string} - ISO string with +05:30 offset.
- */
 function toISTISOString(timeVal, dateStr) {
   if (!timeVal || !dateStr) throw new Error(`toISTISOString: missing timeVal or dateStr (got: ${timeVal}, ${dateStr})`);
 
-  // Already a full ISO string — convert to Date and back (respects embedded offset)
+  
   if (timeVal.includes('T')) {
     return new Date(timeVal).toISOString();
   }
 
-  // Bare time string like "14:00" or "14:00:00" — treat as IST explicitly
-  const timePart = timeVal.length === 5 ? `${timeVal}:00` : timeVal; // ensure HH:MM:SS
+  
+  const timePart = timeVal.length === 5 ? `${timeVal}:00` : timeVal; 
   return new Date(`${dateStr}T${timePart}${IST_OFFSET}`).toISOString();
 }
 
-/**
- * Checks busy slots for a given date (YYYY-MM-DD) in IST.
- * Uses IST start/end of day to capture all events visible to an Indian user.
- * @param {string} dateStr - Date formatted as YYYY-MM-DD (in IST).
- * @returns {Promise<Array<{start: string, end: string, summary: string}>>}
- */
 async function checkAvailability(dateStr) {
   try {
-    // Start/end of the day in IST
+    
     const startOfDay = new Date(`${dateStr}T00:00:00${IST_OFFSET}`);
     const endOfDay   = new Date(`${dateStr}T23:59:59${IST_OFFSET}`);
 
@@ -51,9 +36,11 @@ async function checkAvailability(dateStr) {
 
     const events = response.data.items || [];
     return events.map((event) => ({
+      eventId: event.id,
       start: event.start.dateTime || event.start.date,
       end: event.end.dateTime || event.end.date,
       summary: event.summary,
+      description: event.description || '',
     }));
   } catch (error) {
     console.error(`Error checking availability for date ${dateStr}:`, error);
@@ -93,25 +80,14 @@ async function checkConflict(dateStr, startTime, endTime) {
   return { hasConflict: false };
 }
 
-/**
- * Creates a new calendar appointment.
- * @param {Object} details
- * @param {string} details.visitorName
- * @param {string} details.visitorEmail
- * @param {string} details.date - YYYY-MM-DD
- * @param {string|Date} details.startTime
- * @param {string|Date} details.endTime
- * @param {string} details.reason
- * @returns {Promise<string>} - The Google Calendar Event ID.
- */
 async function createAppointment(details) {
   try {
-    // Convert the bare IST time strings to proper UTC ISO strings for the API
+    
     const startDateTime = toISTISOString(details.startTime, details.date);
     const endDateTime   = toISTISOString(details.endTime, details.date);
 
     const event = {
-      summary: `Meeting with ${details.visitorName}`,
+      summary: `Meeting with Mithelesh (Visitor: ${details.visitorName})`,
       description: `Reason: ${details.reason}\nVisitor Email: ${details.visitorEmail}`,
       start: {
         dateTime: startDateTime,
@@ -131,6 +107,7 @@ async function createAppointment(details) {
 
     const response = await calendar.events.insert({
       calendarId: 'primary',
+      sendUpdates: 'all',
       resource: event,
     });
 
@@ -141,15 +118,6 @@ async function createAppointment(details) {
   }
 }
 
-/**
- * Blocks out a specific time slot on the calendar.
- * @param {Object} details
- * @param {string} details.date - YYYY-MM-DD
- * @param {string|Date} details.startTime
- * @param {string|Date} details.endTime
- * @param {string} details.title
- * @returns {Promise<string>} - The Google Calendar Event ID.
- */
 async function blockTimeSlot(details) {
   try {
     const startDateTime = toISTISOString(details.startTime, details.date);
@@ -180,11 +148,6 @@ async function blockTimeSlot(details) {
   }
 }
 
-/**
- * Deletes an existing calendar event.
- * @param {string} googleEventId
- * @returns {Promise<void>}
- */
 async function deleteAppointment(googleEventId) {
   try {
     await calendar.events.delete({

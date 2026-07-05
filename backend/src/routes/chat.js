@@ -5,11 +5,6 @@ const { prisma } = require('../db');
 
 const router = express.Router();
 
-/**
- * @route  GET /api/chat/history
- * @desc   Returns the full chat history for the authenticated user.
- * @access Protected
- */
 router.get('/history', requireAuth, async (req, res) => {
   try {
     const messages = await prisma.chatMessage.findMany({
@@ -23,11 +18,6 @@ router.get('/history', requireAuth, async (req, res) => {
   }
 });
 
-/**
- * @route  POST /api/chat
- * @desc   Send a message to the AI Digital Twin and receive a streaming text response.
- * @access Protected
- */
 router.post('/', requireAuth, async (req, res) => {
   try {
     const { message } = req.body;
@@ -36,17 +26,18 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     const userId = req.user.id;
+    const role = req.user.role || 'visitor';
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('X-Content-Type-Options', 'nosniff');
 
-    // Dynamically route between RAG and ACTION using the new architecture
-    const responsePayload = await chatService.processQuery(message.trim(), userId);
+    
+    const responsePayload = await chatService.processQuery(message.trim(), userId, role);
     const responseText = responsePayload.answer || "I'm sorry, I encountered an error.";
 
-    // Save to DB
+    
     await prisma.chatMessage.createMany({
       data: [
         { userId, sender: 'user', message: message.trim() },
@@ -54,7 +45,7 @@ router.post('/', requireAuth, async (req, res) => {
       ],
     });
 
-    // Stream to frontend
+    
     const words = responseText.split(' ');
     for (let i = 0; i < words.length; i++) {
       const chunk = i === 0 ? words[i] : ' ' + words[i];

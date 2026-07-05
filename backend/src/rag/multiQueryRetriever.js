@@ -7,21 +7,13 @@ const { hybridRetriever } = require("./hybridRetriever");
 const { logger } = require("./logger/index.js");
 require("dotenv").config();
 
-/**
- * Multi-Query Retriever Service
- * 
- * Purpose: Overcomes the limitation of single-vector distance searches by generating 
- *          multiple distinct perspectives of the original query, searching for all of them, 
- *          and mathematically fusing the results.
- * Architecture: Gemini Flash generates variations -> Concurrent Embedding -> Concurrent Hybrid Search -> RRF Merge
- */
 class MultiQueryRetriever {
   constructor() {
     const apiKey = process.env.GEMINI_API_KEY;
     this.llm = new ChatGoogleGenerativeAI({
       apiKey,
       model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
-      temperature: 0.2, // Slight temperature to encourage diverse phrasing
+      temperature: 0.2, 
       maxRetries: 2,
     });
 
@@ -37,12 +29,7 @@ Output EXACTLY 3 distinct queries, one per line. Do NOT include numbers, bullets
     this.chain = this.prompt.pipe(this.llm).pipe(new StringOutputParser());
   }
 
-  /**
-   * Generates query variations using the LLM.
-   * @param {string} query - The rewritten/base query.
-   * @returns {Promise<string[]>} Array of queries (original + variations).
-   */
-  async _generateVariations(query) {
+    async _generateVariations(query) {
     try {
       const response = await this.chain.invoke({ query });
       const variations = response
@@ -50,7 +37,7 @@ Output EXACTLY 3 distinct queries, one per line. Do NOT include numbers, bullets
         .map(q => q.trim())
         .filter(q => q.length > 0);
       
-      // Ensure we always have the original query included
+      
       const allQueries = Array.from(new Set([query, ...variations]));
       logger.debug(`[MultiQuery] Generated ${allQueries.length} query variations.`);
       return allQueries;
@@ -60,35 +47,28 @@ Output EXACTLY 3 distinct queries, one per line. Do NOT include numbers, bullets
     }
   }
 
-  /**
-   * Executes multi-query expansion, retrieval, and fusion.
-   * @param {string} baseQuery - The optimized base query.
-   * @param {number} topK - How many final chunks to return.
-   * @param {Object} [filter={}] - Metadata filters.
-   * @returns {Promise<Array>} Final fused and deduplicated array of retrieved chunks.
-   */
-  async retrieve(baseQuery, topK = 5, filter = {}) {
+    async retrieve(baseQuery, topK = 5, filter = {}) {
     const startMs = Date.now();
     logger.info(`[MultiQuery] Starting Multi-Query Retrieval for: "${baseQuery}"`);
 
-    // 1. Generate variations
+    
     const queries = await this._generateVariations(baseQuery);
     
-    // 2. Concurrently embed all variations
+    
     const embeddings = await Promise.all(queries.map(q => queryEmbedder.embed(q).catch(() => null)));
     
-    // 3. Concurrently execute hybrid retrieval for all successful embeddings
+    
     const retrievalPromises = [];
     for (let i = 0; i < queries.length; i++) {
       if (embeddings[i]) {
-        // Fetch slightly more to ensure good fusion overlap
+        
         retrievalPromises.push(hybridRetriever.retrieve(queries[i], embeddings[i], topK + 3, filter));
       }
     }
     
     const resultsArrays = await Promise.all(retrievalPromises);
     
-    // 4. Merge all result sets using a simple frequency & score fusion (similar to RRF)
+    
     const finalResults = this._fuseResults(resultsArrays, topK);
     
     const latencyMs = Date.now() - startMs;
@@ -97,34 +77,28 @@ Output EXACTLY 3 distinct queries, one per line. Do NOT include numbers, bullets
     return finalResults;
   }
 
-  /**
-   * Fuses multiple result lists into a single ranked list, eliminating duplicates.
-   * @param {Array<Array>} resultsArrays - Array of result arrays.
-   * @param {number} topK - Final count to return.
-   * @returns {Array} Top-K fused results.
-   */
-  _fuseResults(resultsArrays, topK) {
+    _fuseResults(resultsArrays, topK) {
     const fusionMap = new Map();
 
     resultsArrays.forEach((resultsList) => {
       resultsList.forEach((item, index) => {
-        // Use RRF-style scoring for merging the multi-query lists
+        
         const rank = index + 1;
         const rrfScore = 1.0 / (60 + rank);
 
         if (fusionMap.has(item.id)) {
           const existing = fusionMap.get(item.id);
-          existing.multiQueryScore += rrfScore; // Aggregate score
+          existing.multiQueryScore += rrfScore; 
         } else {
           fusionMap.set(item.id, {
-            ...item, // Preserve the item (includes its internal rrfScore from HybridRetriever)
+            ...item, 
             multiQueryScore: rrfScore 
           });
         }
       });
     });
 
-    // Sort by aggregated multi-query score descending
+    
     const mergedList = Array.from(fusionMap.values()).sort((a, b) => b.multiQueryScore - a.multiQueryScore);
     return mergedList.slice(0, topK);
   }

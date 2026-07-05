@@ -30,7 +30,7 @@ function Core() {
         />
       </Sphere>
       
-      {/* Inner solid core */}
+      {}
       <Sphere args={[1, 32, 32]}>
         <meshStandardMaterial 
           color="#ffffff" 
@@ -111,7 +111,7 @@ export function JarvisIntro() {
           transition={{ duration: 1 }}
           className="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center overflow-hidden"
         >
-          {/* 3D Canvas Layer */}
+          {}
           <div className="absolute inset-0 z-0">
             <Canvas camera={{ position: [0, 0, 7], fov: 45 }}>
               <ambientLight intensity={0.2} />
@@ -134,7 +134,7 @@ export function JarvisIntro() {
             </Canvas>
           </div>
 
-          {/* Overlay UI Layer */}
+          {}
           <div className="relative z-10 w-full max-w-3xl mx-auto px-6 text-center mt-[40vh] flex flex-col items-center">
             <div className="h-32 mb-8 flex items-end justify-center">
               <p className="text-xl md:text-2xl font-mono text-electricBlue drop-shadow-[0_0_10px_rgba(0,240,255,0.8)]">

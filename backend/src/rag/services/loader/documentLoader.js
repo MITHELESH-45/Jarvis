@@ -4,11 +4,6 @@ const { PDFLoader } = require("@langchain/community/document_loaders/fs/pdf");
 const { generateDeterministicId, deriveDocumentName } = require("../../utils/index.js");
 const { logger } = require("../../logger/index.js");
 
-/**
- * PDF Document Loader.
- * Wraps LangChain's PDFLoader and maps each page into a RawDocument
- * with full source metadata preserved.
- */
 class PdfDocumentLoader {
   supports(filePath) {
     return path.extname(filePath).toLowerCase() === ".pdf";
@@ -47,9 +42,6 @@ class PdfDocumentLoader {
   }
 }
 
-/**
- * Plain-text / Markdown file loader.
- */
 class TextDocumentLoader {
   supports(filePath) {
     const ext = path.extname(filePath).toLowerCase();
@@ -86,10 +78,6 @@ class TextDocumentLoader {
   }
 }
 
-/**
- * Router — dispatches to the correct loader based on file extension.
- * Register new loaders with registerLoader() without touching the pipeline.
- */
 class DocumentLoaderRouter {
   constructor(loaders) {
     this.loaders = loaders ?? [new PdfDocumentLoader(), new TextDocumentLoader()];

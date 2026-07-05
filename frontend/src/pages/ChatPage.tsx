@@ -41,7 +41,7 @@ export function ChatPage() {
     <div className="h-[100dvh] flex flex-col bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-slate-50 transition-colors duration-300 font-sans overflow-hidden">
       <Toaster position="top-center" />
       
-      {/* Header */}
+      {}
       <header className="flex-shrink-0 flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 z-10">
         <div className="flex items-center space-x-3">
           <Bot className="w-8 h-8 text-electricBlue" />
@@ -82,7 +82,7 @@ export function ChatPage() {
         </div>
       </header>
 
-      {/* Chat Area */}
+      {}
       <main className="flex-1 overflow-y-auto p-4 sm:p-6 custom-scrollbar relative">
         <div className="max-w-4xl mx-auto flex flex-col space-y-6 pb-6">
           
@@ -116,7 +116,7 @@ export function ChatPage() {
         </div>
       </main>
 
-      {/* Input Area */}
+      {}
       <footer className="flex-shrink-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 p-4">
         <div className="max-w-4xl mx-auto relative">
           <form onSubmit={handleSubmit} className="relative flex items-end">
@@ -167,7 +167,7 @@ const ChatMessage = React.memo(function ChatMessage({ message, user, onRetry }: 
     >
       <div className={`flex w-full max-w-full sm:max-w-[85%] ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
         
-        {/* Avatar */}
+        {}
         <div className={`flex-shrink-0 flex items-start ${isUser ? 'ml-3' : 'mr-3'}`}>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isUser ? 'bg-slate-200 dark:bg-slate-700' : 'bg-electricBlue text-slate-900 shadow-sm'}`}>
             {isUser ? (
@@ -178,7 +178,7 @@ const ChatMessage = React.memo(function ChatMessage({ message, user, onRetry }: 
           </div>
         </div>
 
-        {/* Bubble */}
+        {}
         <div className="flex flex-col relative flex-grow overflow-hidden max-w-[calc(100%-2.5rem)]">
           <div 
             className={`px-5 py-4 rounded-2xl ${
@@ -232,7 +232,7 @@ const ChatMessage = React.memo(function ChatMessage({ message, user, onRetry }: 
             )}
           </div>
 
-          {/* Action Bar */}
+          {}
           {!isUser && !message.isStreaming && (
             <div className="mt-2 flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
               <button 
